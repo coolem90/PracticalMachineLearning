@@ -1,0 +1,238 @@
+---
+title: "Practical Machine Learning"
+author: "Anita Lin"
+date: "Sunday, December 14, 2014"
+output: html_document
+---
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: [http://groupware.les.inf.puc-rio.br/har] (see the section on the Weight Lifting Exercise Dataset).
+
+# Data
+
+The training data for this project are available here: 
+[https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv]
+
+The test data are available here: 
+[https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv]
+
+# Start to analysis
+
+__*1.Prepare the train and test sets.*__<br/>
+
+__Load the training dataset__ <br/>
+
+```{r,results='hide'}
+library(caret)
+library(ggplot2)
+library(lattice)
+setwd("E:/Course/Johns hopkins_Data Science/Practical Machine Learning/Project")
+fileUrl<-c("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+           "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+fileName<-c("pml-training.csv","pml-testing.csv")
+##Download the files
+#for (i in 1 : length(fileUrl)){
+#  download.file(fileUrl[i],fileName[i])
+#}
+trainingDB<-read.csv(fileName[1])
+```
+
+__Spilt training dataset__ <br/>
+ Spilt te training dataset into the train for building the model and test databases for verifying the model
+ 
+```{r}
+inTrain <- createDataPartition(y = trainingDB$classe, p = 0.7, list = FALSE)
+train <- trainingDB[inTrain, ]
+test <- trainingDB[-inTrain, ]
+```
+
+__Choose the features for the model__<br/>
+ There are too many variables on the training dataset and the range of values bween different four accelerometers are big. Due to the speed of selectling the fitting model, it might be a better way to standard the values of traget variables per each user. Ex: stardard value = (value-mean)/stard deviation.
+ 
+ 
+```{r,echo=FALSE}
+train$feature_roll_belt<-(train$roll_belt-mean(train$roll_belt))/sd(train$roll_belt)
+train$feature_roll_arm<-(train$roll_arm-mean(train$roll_arm))/sd(train$roll_arm)
+train$feature_roll_dumbbell<-(train$roll_dumbbell-mean(train$roll_dumbbell))/sd(train$roll_dumbbell)
+train$feature_roll_forearm<-(train$roll_forearm-mean(train$roll_forearm))/sd(train$roll_forearm)
+
+train$feature_pitch_belt<-(train$pitch_belt-mean(train$pitch_belt))/sd(train$pitch_belt)
+train$feature_pitch_arm<-(train$pitch_arm-mean(train$pitch_arm))/sd(train$pitch_arm)
+train$feature_pitch_dumbbell<-(train$pitch_dumbbell-mean(train$pitch_dumbbell))/sd(train$pitch_dumbbell)
+train$feature_pitch_forearm<-(train$pitch_forearm-mean(train$pitch_forearm))/sd(train$pitch_forearm)
+
+train$feature_yaw_belt<-(train$yaw_belt-mean(train$yaw_belt))/sd(train$yaw_belt)
+train$feature_yaw_arm<-(train$yaw_arm-mean(train$yaw_arm))/sd(train$yaw_arm)
+train$feature_yaw_dumbbell<-(train$yaw_dumbbell-mean(train$yaw_dumbbell))/sd(train$yaw_dumbbell)
+train$feature_yaw_forearm<-(train$yaw_forearm-mean(train$yaw_forearm))/sd(train$yaw_forearm)
+train<-train[160:172]
+names(train)
+```
+
+
+__Plot figures for the relationshops__<br/> 
+the relationshops between accelerometers with different body locations and classification
+
+```{r,echo=FALSE, fig.width=10}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+
+g<- ggplot(train, aes(classe,feature_roll_belt))
+g1<-g + geom_point(aes(color = feature_roll_belt)) + ylab("Roll Belt")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_roll_arm))
+g2<-g + geom_point(aes(color = feature_roll_arm))+ ylab("Roll Arm")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_roll_dumbbell))
+g3<-g + geom_point(aes(color = feature_roll_dumbbell))+ ylab("Roll Dumbbell")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_roll_forearm))
+g4<-g + geom_point(aes(color = feature_roll_forearm))+ ylab("Roll Forearm")+ theme(legend.position="none")
+
+g<- ggplot(train, aes(classe,feature_pitch_belt))
+g5<-g + geom_point(aes(color = feature_pitch_belt)) + ylab("Ptich Belt")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_pitch_arm))
+g6<-g + geom_point(aes(color = feature_pitch_arm))+ ylab("Ptich Arm")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_pitch_dumbbell))
+g7<-g + geom_point(aes(color = feature_pitch_dumbbell))+ ylab("Pitc Dumbbell")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_pitch_forearm))
+g8<-g + geom_point(aes(color = feature_pitch_forearm))+ ylab("Ptich Forearm")+ theme(legend.position="none")
+
+
+g<- ggplot(train, aes(classe,feature_yaw_belt))
+g9<-g + geom_point(aes(color = feature_yaw_belt)) + ylab("Yaw Belt")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_yaw_arm))
+g10<-g + geom_point(aes(color = feature_yaw_arm))+ ylab("Yaw Arm")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_yaw_dumbbell))
+g11<-g + geom_point(aes(color = feature_yaw_dumbbell))+ ylab("Yaw Dumbbell")+ theme(legend.position="none")
+g <- ggplot(train, aes(classe,feature_yaw_forearm))
+g12<-g + geom_point(aes(color = feature_yaw_forearm))+ ylab("Yaw Forearm")+ theme(legend.position="none")
+grid.arrange(g1, g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12, nrow=3, ncol=4)
+
+```
+
+__Covariates__<br/>
+If there are zero covarated, the varialbe will be removed. However, in the below list, no zero is in the freqRatio column. So, all variables will be accounted for the model.
+
+```{r}
+nearZeroVar(train,saveMetric=TRUE)
+```
+
+__*2.Fit a model to predict the classe using 12 features as predictors*__<br/>
+
+```{r}
+library(randomForest)
+model <- randomForest(classe ~ ., data = train,method='rf',prox=TRUE)
+model 
+```
+
+As the above te table, the OOB estimate of  error rate is low, so this model might be high accuracy for predicaiton.
+
+
+__*3.Runing the test dataset for vaerifying the model*__<br/>
+Firstly, before starting to run the model, test datatset should be ready. The remaining 30% of data are assigned to test dataset. All vaiarbles in test dataset should be transfered to the standard values following by the process of trian dataset.
+
+```{r,echo=FALSE,fig.width=10}
+test$feature_roll_belt<-(test$roll_belt-mean(test$roll_belt))/sd(test$roll_belt)
+test$feature_roll_arm<-(test$roll_arm-mean(test$roll_arm))/sd(test$roll_arm)
+test$feature_roll_dumbbell<-(test$roll_dumbbell-mean(test$roll_dumbbell))/sd(test$roll_dumbbell)
+test$feature_roll_forearm<-(test$roll_forearm-mean(test$roll_forearm))/sd(test$roll_forearm)
+
+test$feature_pitch_belt<-(test$pitch_belt-mean(test$pitch_belt))/sd(test$pitch_belt)
+test$feature_pitch_arm<-(test$pitch_arm-mean(test$pitch_arm))/sd(test$pitch_arm)
+test$feature_pitch_dumbbell<-(test$pitch_dumbbell-mean(test$pitch_dumbbell))/sd(test$pitch_dumbbell)
+test$feature_pitch_forearm<-(test$pitch_forearm-mean(test$pitch_forearm))/sd(test$pitch_forearm)
+
+test$feature_yaw_belt<-(test$yaw_belt-mean(test$yaw_belt))/sd(test$yaw_belt)
+test$feature_yaw_arm<-(test$yaw_arm-mean(test$yaw_arm))/sd(test$yaw_arm)
+test$feature_yaw_dumbbell<-(test$yaw_dumbbell-mean(test$yaw_dumbbell))/sd(test$yaw_dumbbell)
+test$feature_yaw_forearm<-(test$yaw_forearm-mean(test$yaw_forearm))/sd(test$yaw_forearm)
+
+test<-test[160:172]
+```
+
+The first block is Roll Belt, the second block is Pitch Belt and the last one is Yaw Belt.
+
+__Model validation__<br/>
+
+```{r}
+test$predictTest<- predict(model, test)
+con<-confusionMatrix(test$classe, test$predictTest)
+con
+```
+
+As the above the talbe, the accuracy is  `r con$overall[1]`.
+
+
+__Plot figures for the predicted  outcomes__<br/> 
+In the bleow figure, it shows that the predicted outcomes between accelerometers with different body locations and classification. As you can see, there are a few missclassification; however, most calssifications are corrected.
+
+
+```{r,echo=FALSE, fig.width=10}
+
+g<- ggplot(test, aes(classe,feature_roll_belt))
+g1<-g + geom_point(aes(color = predictTest)) + ylab("Roll Belt")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_roll_arm))
+g2<-g + geom_point(aes(color = predictTest))+ ylab("Roll Arm")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_roll_dumbbell))
+g3<-g + geom_point(aes(color = predictTest))+ ylab("Roll Dumbbell")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_roll_forearm))
+g4<-g + geom_point(aes(color = predictTest))+ ylab("Roll Forearm")+ theme(legend.position="right")
+
+g<- ggplot(test, aes(classe,feature_pitch_belt))
+g5<-g + geom_point(aes(color = predictTest)) + ylab("Pitch Belt")+  theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_pitch_arm))
+g6<-g + geom_point(aes(color = predictTest))+ ylab("Pitch Arm")+  theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_pitch_dumbbell))
+g7<-g + geom_point(aes(color = predictTest))+ ylab("Pitch Dumbbell")+  theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_pitch_forearm))
+g8<-g + geom_point(aes(color = predictTest))+ ylab("Pitch Forearm")+  theme(legend.position="right")
+
+
+g<- ggplot(test, aes(classe,feature_yaw_belt))
+g9<-g + geom_point(aes(color = predictTest)) + ylab("Yaw Belt")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_yaw_arm))
+g10<-g + geom_point(aes(color = predictTest))+ ylab("Yaw Arm")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_yaw_dumbbell))
+g11<-g + geom_point(aes(color = predictTest))+ ylab("Yaw Dumbbell")+ theme(legend.position="none")
+g <- ggplot(test, aes(classe,feature_yaw_forearm))
+g12<-g + geom_point(aes(color = predictTest))+ ylab("Yaw Forearm")+ theme(legend.position="right")
+grid.arrange(g1, g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12, nrow=3, ncol=4)
+
+```
+
+The first block is Roll Belt, the second block is Pitch Belt and the last one is Yaw Belt.
+
+__*4.Predication*__<br/>
+This is the final setp for ruing the dataset, which are waiting for assigning the classification. Before prediction, data run the process of standardized values. 
+
+```{r,echo=FALSE}
+
+testingDB$feature_roll_belt<-(testingDB$roll_belt-mean(testingDB$roll_belt))/sd(testingDB$roll_belt)
+testingDB$feature_roll_arm<-(testingDB$roll_arm-mean(testingDB$roll_arm))/sd(testingDB$roll_arm)
+testingDB$feature_roll_dumbbell<-(testingDB$roll_dumbbell-mean(testingDB$roll_dumbbell))/sd(testingDB$roll_dumbbell)
+testingDB$feature_roll_forearm<-(testingDB$roll_forearm-mean(testingDB$roll_forearm))/sd(testingDB$roll_forearm)
+
+testingDB$feature_pitch_belt<-(testingDB$pitch_belt-mean(testingDB$pitch_belt))/sd(testingDB$pitch_belt)
+testingDB$feature_pitch_arm<-(testingDB$pitch_arm-mean(testingDB$pitch_arm))/sd(testingDB$pitch_arm)
+testingDB$feature_pitch_dumbbell<-(testingDB$pitch_dumbbell-mean(testingDB$pitch_dumbbell))/sd(testingDB$pitch_dumbbell)
+testingDB$feature_pitch_forearm<-(testingDB$pitch_forearm-mean(testingDB$pitch_forearm))/sd(testingDB$pitch_forearm)
+
+testingDB$feature_yaw_belt<-(testingDB$yaw_belt-mean(testingDB$yaw_belt))/sd(testingDB$yaw_belt)
+testingDB$feature_yaw_arm<-(testingDB$yaw_arm-mean(testingDB$yaw_arm))/sd(testingDB$yaw_arm)
+testingDB$feature_yaw_dumbbell<-(testingDB$yaw_dumbbell-mean(testingDB$yaw_dumbbell))/sd(testingDB$yaw_dumbbell)
+testingDB$feature_yaw_forearm<-(testingDB$yaw_forearm-mean(testingDB$yaw_forearm))/sd(testingDB$yaw_forearm)
+
+testingDB<-testingDB[160:172]
+```
+
+__Predication of Model__<br/>
+
+```{r}
+predictTest <- predict(model, testingDB)
+predictTest
+```
+
+# Conclusion
+
+Using this model with multiple measuring points is possibly predicting the accurate classification.
